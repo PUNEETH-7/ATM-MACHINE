@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ATM Dashboard</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <header>
+            <h1>Welcome, <span id="userName"></span></h1>
+            <button id="logoutBtn" class="btn btn-danger">Logout</button>
+        </header>
+
+        <main>
+            <section class="user-info">
+                <div class="balance-card">
+                    <h2>Current Balance</h2>
+                    <p id="userBalance" class="balance">₹0.00</p>
+                </div>
+                <div class="user-details">
+                    <p><strong>Email:</strong> <span id="userEmail"></span></p>
+                    <p><strong>Phone:</strong> <span id="userPhone"></span></p>
+                </div>
+            </section>
+
+            <section class="transaction-forms">
+                <div class="form-container">
+                    <h3>Deposit Money</h3>
+                    <form id="depositForm">
+                        <div class="form-group">
+                            <input type="number" id="depositAmount" min="1" step="0.01" required placeholder="Enter amount">
+                        </div>
+                        <button type="submit" class="btn btn-success">Deposit</button>
+                    </form>
+                </div>
+
+                <div class="form-container">
+                    <h3>Withdraw Money</h3>
+                    <form id="withdrawForm">
+                        <div class="form-group">
+                            <input type="number" id="withdrawAmount" min="1" step="0.01" required placeholder="Enter amount">
+                        </div>
+                        <button type="submit" class="btn btn-warning">Withdraw</button>
+                    </form>
+                </div>
+            </section>
+
+            <section class="transactions">
+                <h3>Recent Transactions</h3>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Type</th>
+                                <th>Amount</th>
+                                <th>Balance Impact</th>
+                            </tr>
+                        </thead>
+                        <tbody id="transactionList">
+                            <!-- Transactions will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script src="dashboard.js"></script>
+</body>
+</html>
