@@ -22,12 +22,16 @@ const dbConfig = {
     password: 'PUni8971@',
     waitForConnections: true,
     connectionLimit: 10,
-    queueLimit: 0
+    queueLimit: 0,
+    enableKeepAlive: true,
+    keepAliveInitialDelay: 0
 };
 
 let pool;
+let retryCount = 0;
+const MAX_RETRIES = 5;
 
-// Initialize database
+// Initialize database with retry mechanism
 async function initializeDatabase() {
     try {
         // Create a connection without database
@@ -43,15 +47,19 @@ async function initializeDatabase() {
         await initialConnection.end();
 
         // Create connection pool with database selected
-        pool = mysql.createPool({
+        const newPool = mysql.createPool({
             ...dbConfig,
             database: 'atm_db'
         });
 
-        // Get a connection from the pool
-        const connection = await pool.getConnection();
-
+        // Test the connection and create tables
+        const connection = await newPool.getConnection();
         try {
+            // Test connection
+            await connection.ping();
+            console.log('Database connection established successfully');
+            retryCount = 0; // Reset retry count on successful connection
+
             // Create Users table if it doesn't exist
             await connection.query(`
                 CREATE TABLE IF NOT EXISTS Users (
@@ -79,6 +87,24 @@ async function initializeDatabase() {
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
             `);
             console.log('Transactions table verified successfully');
+            
+            // If everything is successful, assign the pool
+            pool = newPool;
+            
+            // Set up error handler for the pool
+            pool.on('error', async (err) => {
+                console.error('Database pool error:', err);
+                if (err.code === 'PROTOCOL_CONNECTION_LOST' || err.code === 'ECONNREFUSED') {
+                    if (retryCount < MAX_RETRIES) {
+                        retryCount++;
+                        console.log(`Attempting to reconnect to database (Attempt ${retryCount}/${MAX_RETRIES})...`);
+                        await initializeDatabase().catch(console.error);
+                    } else {
+                        console.error('Max reconnection attempts reached. Please check your database connection.');
+                    }
+                }
+            });
+            
         } finally {
             connection.release();
         }
@@ -89,9 +115,6 @@ async function initializeDatabase() {
         throw error;
     }
 }
-
-// Initialize the database
-initializeDatabase().catch(console.error);
 
 // JWT secret key
 const JWT_SECRET = 'your_jwt_secret';
@@ -194,36 +217,44 @@ app.post('/api/register', async (req, res) => {
 // Login endpoint
 app.post('/api/login', async (req, res) => {
     try {
+        console.log('Login attempt:', { username: req.body.username });
         const { username, password } = req.body;
 
         if (!username || !password) {
+            console.log('Login failed: Missing username or password');
             return res.status(400).json({ message: 'Username and password are required' });
         }
 
         const connection = await pool.getConnection();
         try {
+            console.log('Querying database for user:', username);
             const [users] = await connection.query(
                 'SELECT * FROM Users WHERE username = ?',
                 [username]
             );
 
             if (users.length === 0) {
+                console.log('Login failed: User not found:', username);
                 return res.status(401).json({ message: 'Invalid username or password' });
             }
 
             const user = users[0];
+            console.log('User found, verifying password');
             const validPassword = await bcrypt.compare(password, user.password_hash);
 
             if (!validPassword) {
+                console.log('Login failed: Invalid password for user:', username);
                 return res.status(401).json({ message: 'Invalid username or password' });
             }
 
+            console.log('Password verified, generating token');
             const token = jwt.sign(
                 { userId: user.user_id, username: user.username },
                 JWT_SECRET,
                 { expiresIn: '24h' }
             );
 
+            console.log('Login successful for user:', username);
             res.json({ 
                 message: 'Login successful',
                 token,
@@ -394,7 +425,16 @@ app.get('/api/transactions/report', authenticateToken, async (req, res) => {
     }
 });
 
-// Start the server
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
-});
+// Initialize the database
+(async () => {
+    try {
+        await initializeDatabase();
+        // Start the server only after database is initialized
+        app.listen(PORT, () => {
+            console.log(`Server is running on port ${PORT}`);
+        });
+    } catch (error) {
+        console.error('Failed to initialize the application:', error);
+        process.exit(1);
+    }
+})();

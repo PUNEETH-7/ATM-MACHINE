@@ -59,6 +59,28 @@ body {
     border-color: #1a73e8;
 }
 
+/* Button Styles */
+.btn {
+    width: 100%;
+    padding: 12px;
+    background-color: #1a73e8;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.btn:hover {
+    background-color: #1557b0;
+}
+
+.btn:active {
+    background-color: #104d9e;
+}
+
 /* Dashboard Styles */
 .dashboard-container {
     max-width: 1200px;
@@ -176,18 +198,6 @@ tr:hover {
 }
 
 /* Buttons */
-.btn {
-    display: inline-block;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    font-size: 16px;
-    cursor: pointer;
-    transition: background-color 0.3s;
-    width: 100%;
-    margin-top: 10px;
-}
-
 .btn-success {
     background-color: #28a745;
     color: white;
@@ -202,10 +212,6 @@ tr:hover {
     background-color: #dc3545;
     color: white;
     width: auto;
-}
-
-.btn:hover {
-    opacity: 0.9;
 }
 
 /* Text Colors */
